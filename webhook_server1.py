@@ -1,11 +1,23 @@
-from flask import Flask, request, jsonify
 import requests
+from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-# Токени
 VERIFY_TOKEN = "touch2023"
-ACCESS_TOKEN = "EAB6PfZBaR3RUBO7E0wzfg70edSobbbgJRedjnHQ3zHLgfsmSXljkDqVZCTl1FTj5mEJmBMcCJ1m3ohH1hWMAZCZBktG8SPAUE3pzNR6vQMLGE9ugSFg8y62wNOFnkMj4grnZCy6y1nEn9JmDi5uD1dYrolurstZCNnb1bdnr2e9fID8vDRoKZCsZBM8BTExbacunIJ9KH0VTC7eKWPCjqK4VlJeHQ91wY2LPcTldJU6T"
+INSTAGRAM_ACCESS_TOKEN = "IGQWRPTDlBODJ3b1ZAPUWF4MkJPcXphdFVLc2hJa1NNaXdoalpBTEd0SEdaZAG95LVRTY05oUXRBNkFMRlhqcW56UDlQbVZAZAeVRvOE84NkYxNW1ndjlsSGZAsRXIwWC1XWDlfVWZAZALW9jNWotV2owR2pmTUhFVmxEMzAZD"
+FLOWISE_WEBHOOK_URL = "https://touch.app.flowiseai.com/api/v1/prediction/3fbba34a-97d9-4ad9-902e-59557062c3f4"
+
+def send_message_to_instagram(user_id, message_text):
+    """Відправка відповіді назад в Instagram через API"""
+    url = f"https://graph.facebook.com/v16.0/{user_id}/messages"
+    headers = {"Content-Type": "application/json"}
+    data = {
+        "recipient": {"id": user_id},
+        "message": {"text": message_text},
+        "access_token": INSTAGRAM_ACCESS_TOKEN
+    }
+    response = requests.post(url, headers=headers, json=data)
+    print(f"Response from Instagram API: {response.status_code}, {response.text}")
 
 @app.route('/testhook', methods=['GET', 'POST'])
 def testhook():
@@ -27,39 +39,30 @@ def testhook():
         print("POST Request Received")
         data = request.json
         print(f"JSON Data: {data}")
-        
-        # Якщо приходить подія типу "messages"
-        if data.get("object") == "page":
-            for entry in data.get("entry", []):
+
+        # Перевіряємо повідомлення з Instagram
+        if "entry" in data:
+            for entry in data["entry"]:
                 for messaging_event in entry.get("messaging", []):
-                    sender_id = messaging_event.get("sender", {}).get("id")  # ID користувача, який надіслав повідомлення
-                    message = messaging_event.get("message", {}).get("text")  # Текст повідомлення
+                    if "message" in messaging_event:
+                        sender_id = messaging_event["sender"]["id"]  # ID відправника
+                        message_text = messaging_event["message"]["text"]  # Текст повідомлення
 
-                    if sender_id and message:
-                        print(f"Message from {sender_id}: {message}")
-                        # Відправити відповідь користувачу
-                        send_message(sender_id, f"Ви написали: {message}")
+                        # Надсилаємо повідомлення до Flowise для обробки
+                        flowise_payload = {"question": message_text}
+                        try:
+                            flowise_response = requests.post(
+                                FLOWISE_WEBHOOK_URL, json=flowise_payload
+                            )
+                            flowise_output = flowise_response.json().get("output", "Не вдалося отримати відповідь.")
+                            print(f"Flowise Response: {flowise_output}")
+
+                            # Відправляємо згенеровану відповідь назад в Instagram
+                            send_message_to_instagram(sender_id, flowise_output)
+                        except Exception as e:
+                            print(f"Error communicating with Flowise: {e}")
+
         return "EVENT_RECEIVED", 200
-
-    else:
-        return "Method Not Allowed", 405
-
-def send_message(recipient_id, message_text):
-    """
-    Надсилає повідомлення користувачу в Instagram Direct.
-    """
-    url = f"https://graph.facebook.com/v16.0/me/messages?access_token={ACCESS_TOKEN}"
-    payload = {
-        "recipient": {"id": recipient_id},
-        "message": {"text": message_text}
-    }
-    headers = {"Content-Type": "application/json"}
-
-    response = requests.post(url, json=payload, headers=headers)
-    if response.status_code == 200:
-        print(f"Message sent to {recipient_id}: {message_text}")
-    else:
-        print(f"Failed to send message: {response.status_code}, {response.text}")
 
 if __name__ == '__main__':
     app.run(port=5000)
