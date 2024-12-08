@@ -4,7 +4,7 @@ from flask import Flask, request, jsonify
 app = Flask(__name__)
 
 VERIFY_TOKEN = "touch2023"
-INSTAGRAM_ACCESS_TOKEN = "IGQWRPTDlBODJ3b1ZAPUWF4MkJPcXphdFVLc2hJa1NNaXdoalpBTEd0SEdaZAG95LVRTY05oUXRBNkFMRlhqcW56UDlQbVZAZAeVRvOE84NkYxNW1ndjlsSGZAsRXIwWC1XWDlfVWZAZALW9jNWotV2owR2pmTUhFVmxEMzAZD"
+INSTAGRAM_ACCESS_TOKEN = "IGQWRPUmpra3NndVprS0ZAwX1djMDA1cjhGT3FSd3dXQWJSUGo4N1QtYzJnSy1DR0E5X2E3RHFDR05zY0dsRTdJdkE5YkJ6YkpGUzFCN25KR2xDMXRGR1dnUUVMTlJzbjBUc3ExdHFweG11LWllVnVHa3JxenRvV1EZD"
 FLOWISE_WEBHOOK_URL = "https://touch.app.flowiseai.com/api/v1/prediction/3fbba34a-97d9-4ad9-902e-59557062c3f4"
 
 def send_message_to_instagram(user_id, message_text):
